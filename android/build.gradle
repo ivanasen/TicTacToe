@@ -18,6 +18,14 @@ android {
         applicationId "com.ivanasen.tictactoe"
         minSdkVersion 8
         targetSdkVersion 24
+
+        jackOptions {
+            enabled true
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
