@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.ivanasen.tictactoe.screens.MainMenu;
 
 public class TicTacToeMain extends Game {
-
     public SpriteBatch batch;
 
     @Override

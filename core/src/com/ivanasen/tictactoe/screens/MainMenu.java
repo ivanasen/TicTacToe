@@ -42,8 +42,8 @@ public class MainMenu implements Screen {
         stage = new Stage();
         viewport = new ScreenViewport();
 
-        gameLogo = new Image(new Texture(Constants.LOGO_IMG_NAME));
-        playButton = new Image(new Texture(Constants.PLAY_BTN_NAME));
+        gameLogo = new Image(new Texture(Constants.LOGO_IMG));
+        playButton = new Image(new Texture(Constants.PLAY_BTN_IMG));
 
         isAnimating = false;
 
@@ -67,14 +67,18 @@ public class MainMenu implements Screen {
                                         0,
                                         Constants.BASE_ANIMATION_DURATION,
                                         Interpolation.swingIn),
-                                Actions.run(() -> {
-                                    game.setScreen(new PlayScreen(game));
-                                    MainMenu.this.dispose();
+                                Actions.run(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        game.setScreen(new PlayScreen(game));
+                                        MainMenu.this.dispose();
+                                    }
                                 })
-                        ));
-
+                        )
+                );
             }
         });
+
 
         stage.addActor(gameLogo);
         stage.addActor(playButton);
@@ -89,7 +93,6 @@ public class MainMenu implements Screen {
                 Constants.BACKGROUND_BLUE_VALUE, Constants.BACKGROUND_ALPHA_VALUE);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.draw();
-        Gdx.app.log(TAG, "rendering");
     }
 
     private void update(float delta) {
