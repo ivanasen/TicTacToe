@@ -5,7 +5,9 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -14,6 +16,10 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.ivanasen.tictactoe.Constants;
@@ -60,7 +66,7 @@ public class PlayScreen implements Screen {
         gameGrid = new Image(new Texture(Constants.GAME_GRID_NAME));
         gameGridPosition = new Vector2();
 
-        transparentTexture = new Texture(Constants.TRANSPARENT_CELL);
+        transparentTexture = new Texture(Constants.CROSS_NAME);
         stage = new Stage();
         gameGridStage = new Stage();
         Gdx.input.setInputProcessor(stage);
@@ -85,7 +91,7 @@ public class PlayScreen implements Screen {
             table.row();
             for (int j = 0; j < gameCells[0].length; j++) {
                 gameCells[i][j] = new Image(transparentTexture);
-
+                gameCells[i][j].getColor().a = 0;
                 final int finalI = i;
                 final int finalJ = j;
                 gameCells[i][j].addListener(new ClickListener() {
@@ -99,6 +105,8 @@ public class PlayScreen implements Screen {
 
                         PlayScreen.this.drawCurrentPLayerSymbol(gameCells[finalI][finalJ]);
                         circleIsOnTurn = !circleIsOnTurn;
+
+                        stage.act();
                     }
                 });
 
@@ -108,8 +116,27 @@ public class PlayScreen implements Screen {
     }
 
     private void drawCurrentPLayerSymbol(Image image) {
-        //TODO: finish method
-//        image.addAction();
+        float size = image.getWidth();
+        float x = size / 2;
+        float y = size / 2;
+
+        SpriteDrawable symbol;
+
+        if (circleIsOnTurn) {
+            symbol = new SpriteDrawable(new Sprite(new Texture(Constants.CIRCLE_NAME)));
+        } else {
+            symbol = new SpriteDrawable(new Sprite(new Texture(Constants.CROSS_NAME)));
+        }
+
+        image.setDrawable(symbol);
+        image.scaleBy(-size / 2, -size / 2);
+        image.getColor().a = 1;
+        image.setOrigin(x, y);
+
+        image.addAction(Actions.scaleTo(size, size,
+                Constants.SYMBOL_ANIMATION_DURATION, Interpolation.bounce));
+        update(Gdx.graphics.getDeltaTime());
+
     }
 
     @Override
