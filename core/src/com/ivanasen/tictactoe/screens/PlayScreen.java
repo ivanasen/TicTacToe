@@ -3,97 +3,249 @@ package com.ivanasen.tictactoe.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.TicTacToeMain;
+import com.ivanasen.tictactoe.sprites.PlayerSymbol;
+import com.ivanasen.tictactoe.sprites.Scoreboard;
+
+import java.util.Stack;
 
 /**
  * Created by ivan-asen on 13.09.16.
  */
 public class PlayScreen implements Screen {
     private static final String TAG = PlayScreen.class.getSimpleName();
+    private static final String SCOREBOARD_NAME = "scoreboard";
 
     private TicTacToeMain game;
-    private SpriteBatch batch;
+
     private Viewport viewport;
-    private Image gameGrid;
 
     private Stage stage;
+    private Table gameGridTable;
     private Table table;
 
     private float gameGridSize;
-    private Vector2 gameGridPosition;
+
     private Texture transparentTexture;
-
+    private Image gameGrid;
+    private Sprite backgroundSprite;
     private Image[][] gameCells;
-    private short[][] gameTrackerArray;
 
+    private Vector2 gameGridPosition;
+    private Constants.CellState[][] gameTrackerArray;
     private boolean circleIsOnTurn;
-    private boolean isNotAnimated;
-    private float viewportWidth;
-    private float viewportHeight;
-    private Stage gameGridStage;
-    private boolean isAnimating;
+
+    private boolean animated;
     private boolean gameEnded;
 
     private int moveCount;
+    private Container<Table> tableContainer;
+    private boolean tableNotAdded;
+
+    private Image mainMenuBtn;
+    private Scoreboard scoreboard;
+    private Image restartBtn;
+
+    private int circleWins;
+    private int crossWins;
+    private Image playerTurnCell;
+    private boolean shouldResize;
+    private Texture circleTurn;
+    private Texture crossTurn;
+    private Image undoBtn;
+    private Stack<Vector2> moves;
 
     PlayScreen(TicTacToeMain game) {
         this.game = game;
-        this.batch = game.batch;
     }
 
     @Override
     public void show() {
-        moveCount = 0;
-        circleIsOnTurn = true;
-        viewport = new ScreenViewport(new OrthographicCamera());
+        viewport = new StretchViewport(Constants.V_WIDTH, Constants.V_HEIGHT);
+        stage = new Stage(viewport);
 
-        gameGrid = new Image(new Texture(Constants.GAME_GRID_IMG));
-        gameGridPosition = new Vector2();
-
-        transparentTexture = new Texture(Constants.TRANSPARENT_IMG);
-        stage = new Stage();
-        gameGridStage = new Stage();
         Gdx.input.setInputProcessor(stage);
 
         table = new Table();
+        table.setFillParent(true);
+        gameGridTable = new Table();
+        tableContainer = new Container<>(gameGridTable);
 
-        gameCells = new Image[Constants.GRID_COUNT][Constants.GRID_COUNT];
-        gameTrackerArray = new short[Constants.GRID_COUNT][Constants.GRID_COUNT];
+        initGridVars();
+        initGameTrackingVars();
+        loadImages();
 
-        isNotAnimated = true;
-        isAnimating = false;
-
+        createMainMenuButton();
+        createUndoButton();
+        createRestartButton();
+        createHintForPlayerTurn();
         updateGameGridSize();
+        createScoreBoard();
+        createGameGridCells();
 
-        setUpGameGridCells();
-        gameGridStage.addActor(gameGrid);
+        stage.addActor(gameGrid);
         stage.addActor(table);
     }
 
-    private void setUpGameGridCells() {
+    private void initGridVars() {
+        animated = false;
+        tableNotAdded = true;
+        gameGridPosition = new Vector2();
+        shouldResize = false;
+    }
+
+    private void createUndoButton() {
+        Texture btnTexture = new Texture(Constants.UNDO_BTN_IMG);
+        btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        undoBtn = new Image(btnTexture);
+        undoBtn.setTouchable(Touchable.enabled);
+
+        undoBtn.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                undoBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                undoBtn.getColor().a = 1;
+                undoLastMove();
+            }
+        });
+
+        undoBtn.setScale(1.5f);
+        table.add(undoBtn).padTop(Constants.UNDO_BUTTON_PADDING).padLeft(Constants.UNDO_BUTTON_PADDING).top().right().expandX();
+    }
+
+    private void undoLastMove() {
+        if (moves.empty())
+            return;
+
+        circleIsOnTurn = !circleIsOnTurn;
+        createHintForPlayerTurn();
+        moveCount--;
+        Vector2 lastMove = moves.pop();
+        clearCell((int) lastMove.x, (int) lastMove.y);
+    }
+
+    private void clearCell(int i, int j) {
+        gameTrackerArray[i][j] = Constants.CellState.BLANK;
+        gameCells[i][j].setDrawable(new SpriteDrawable(new Sprite(transparentTexture)));
+        gameCells[i][j].setTouchable(Touchable.enabled);
+    }
+
+    private void createHintForPlayerTurn() {
+        table.row();
+
+        if (playerTurnCell == null && circleIsOnTurn) {
+            playerTurnCell = new Image(circleTurn);
+            table.add(playerTurnCell).colspan(Constants.GAME_3_COLS).expandX();
+        } else if (playerTurnCell == null) {
+            playerTurnCell = new Image(crossTurn);
+            table.add(playerTurnCell).colspan(Constants.GAME_3_COLS).expandX();
+        } else if (circleIsOnTurn) {
+            table.getCell(playerTurnCell).getActor()
+                    .setDrawable(new SpriteDrawable(new Sprite(circleTurn)));
+        } else {
+            table.getCell(playerTurnCell).getActor()
+                    .setDrawable(new SpriteDrawable(new Sprite(crossTurn)));
+        }
+    }
+
+    private void createScoreBoard() {
+        table.row();
+        scoreboard = new Scoreboard();
+        table.add(scoreboard).colspan(Constants.GAME_3_COLS).bottom().expandX();
+    }
+
+    private void createRestartButton() {
+        Texture btnTexture = new Texture(Constants.RESTART_BTN_IMG);
+        btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        restartBtn = new Image(btnTexture);
+        restartBtn.setTouchable(Touchable.enabled);
+
+        restartBtn.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                restartBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                restartBtn.getColor().a = 1;
+                playRestartAnimation();
+            }
+        });
+
+        table.add(restartBtn).pad(Constants.BUTTON_PADDING).top().right().expandX();
+        table.row();
+    }
+
+    private void loadImages() {
+        backgroundSprite = new Sprite(new Texture(Constants.BACKGROUND_IMG));
+
+        Texture grid = new Texture(Constants.GAME_GRID_IMG);
+        grid.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        gameGrid = new Image(grid);
+        gameCells = new Image[Constants.GRID_COUNT][Constants.GRID_COUNT];
+        transparentTexture = new Texture(Constants.TRANSPARENT_IMG);
+
+        circleTurn = new Texture(Constants.CIRCLE_TURN_IMG);
+        crossTurn = new Texture(Constants.CROSS_TURN_IMG);
+        circleTurn.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        crossTurn.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+    }
+
+    private void createMainMenuButton() {
+        Texture btnTexture = new Texture(Constants.MAIN_MENU_BTN_IMG);
+        btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        mainMenuBtn = new Image(btnTexture);
+        mainMenuBtn.setTouchable(Touchable.enabled);
+
+        mainMenuBtn.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                mainMenuBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                super.touchUp(event, x, y, pointer, button);
+                playExitAnimation();
+            }
+        });
+
+        table.add(mainMenuBtn).padLeft(Constants.BUTTON_PADDING).top().left().expandX();
+    }
+
+    private void createGameGridCells() {
         for (int i = 0; i < gameCells.length; i++) {
-            table.row();
+            gameGridTable.row();
             for (int j = 0; j < gameCells[0].length; j++) {
                 gameCells[i][j] = new Image(transparentTexture);
-                table.add(gameCells[i][j]).fill().expand();
+                gameGridTable.add(gameCells[i][j]).fill().expand();
+                gameTrackerArray[i][j] = Constants.CellState.BLANK;
 
                 final int finalI = i;
                 final int finalJ = j;
@@ -102,206 +254,264 @@ public class PlayScreen implements Screen {
                     public void clicked(InputEvent event, float x, float y) {
                         super.clicked(event, x, y);
                         moveCount++;
+                        moves.push(new Vector2(finalI, finalJ));
                         gameTrackerArray[finalI][finalJ] = circleIsOnTurn ?
-                                Constants.CIRCLE_CELL_STATE : Constants.CROSS_CELL_STATE;
-
+                                Constants.CellState.CIRCLE : Constants.CellState.CROSS;
+                        gameCells[finalI][finalJ].setTouchable(Touchable.disabled);
                         PlayScreen.this.drawCurrentPlayerSymbol(gameCells[finalI][finalJ]);
                         circleIsOnTurn = !circleIsOnTurn;
-
-                        gameCells[finalI][finalJ].setTouchable(Touchable.disabled);
-                        Gdx.app.log(TAG, "clicked");
+                        createHintForPlayerTurn();
                     }
                 });
-
             }
         }
     }
 
     private void drawCurrentPlayerSymbol(Image image) {
         SpriteDrawable symbol;
-        if (circleIsOnTurn)
-            symbol = new SpriteDrawable(new Sprite(new Texture(Constants.CIRCLE_IMG)));
-        else
-            symbol = new SpriteDrawable(new Sprite(new Texture(Constants.CROSS_IMG)));
-
+        if (circleIsOnTurn) {
+            Texture circle = new Texture(Constants.CIRCLE_IMG);
+            circle.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            symbol = new PlayerSymbol(circle);
+        } else {
+            Texture cross = new Texture(Constants.CROSS_IMG);
+            cross.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            symbol = new PlayerSymbol(cross);
+        }
         image.getColor().a = 0;
+
         image.setDrawable(symbol);
-        animateSymbol(image);
-    }
-
-    private void animateSymbol(Image image) {
-        float size = image.getWidth();
-        float x = size / 2;
-        float y = size / 2;
-
-        image.setOrigin(x, y);
-
-        float scaleX = image.getScaleX();
-        float scaleY = image.getScaleY();
-
-        image.scaleBy(-scaleX, -scaleY);
-
-        Action fadeInAction = Actions.fadeIn(Constants.SYMBOL_ANIMATION_DURATION);
-        Action scaleAction = Actions.scaleTo(scaleX, scaleY,
-                Constants.SYMBOL_ANIMATION_DURATION, Interpolation.elasticOut);
-        Action checkPlayerHasWonAction = Actions.run(new Runnable() {
-            @Override
-            public void run() {
-                checkIfGameHasEnded();
-            }
-        });
-        image.addAction(Actions.sequence(Actions.parallel(fadeInAction, scaleAction),
-                checkPlayerHasWonAction));
+        PlayerSymbol.animateSymbol(image, this);
     }
 
     @Override
     public void render(float delta) {
         update(delta);
 
-        Gdx.gl.glClearColor(Constants.BACKGROUND_RED_VALUE, Constants.BACKGROUND_GREEN_VALUE,
-                Constants.BACKGROUND_BLUE_VALUE, Constants.BACKGROUND_ALPHA_VALUE);
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        game.batch.begin();
+        backgroundSprite.draw(game.batch);
+        game.batch.end();
+
         stage.draw();
-        gameGridStage.draw();
     }
 
     private void update(float delta) {
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-
-        if (isNotAnimated) {
-            gameGrid.addAction(
-                    Actions.moveTo(
-                            gameGridPosition.x,
-                            gameGridPosition.y,
-                            Constants.BASE_ANIMATION_DURATION,
-                            Interpolation.swingOut)
-                    );
-            isNotAnimated = false;
+        if (!animated) {
+            playEnterAnimation();
+            animated = true;
         }
 
+        backgroundSprite.setSize(viewport.getScreenWidth(), viewport.getScreenHeight());
         stage.act(delta);
-        gameGridStage.act(delta);
     }
 
-    private void checkIfGameHasEnded() {
+    private void playEnterAnimation() {
+        scoreboard.getColor().a = 0;
+        gameGrid.getColor().a = 0;
+        restartBtn.getColor().a = 0;
+        mainMenuBtn.getColor().a = 0;
+        playerTurnCell.getColor().a = 0;
+        undoBtn.getColor().a = 0;
+
+        gameGrid.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
+        restartBtn.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
+        mainMenuBtn.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
+        playerTurnCell.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
+        undoBtn.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
+        scoreboard.addAction(Actions.parallel(Actions.moveTo(0, 0,
+                Constants.BASE_ANIMATION_DURATION, Interpolation.exp10Out),
+                Actions.fadeIn(Constants.BASE_ANIMATION_DURATION)));
+    }
+
+    private void playExitAnimation() {
+        Action backToMainMenu = Actions.run(new Runnable() {
+            @Override
+            public void run() {
+                game.setScreen(new MainMenu(game));
+                dispose();
+            }
+        });
+
+        for (Image[] gameCell : gameCells) {
+            for (Image image : gameCell) {
+                image.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+            }
+        }
+        mainMenuBtn.addAction(Actions.sequence(
+                Actions.fadeOut(Constants.FADE_ANIM_DURATION), backToMainMenu));
+        gameGrid.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+        restartBtn.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+        playerTurnCell.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+        undoBtn.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+
+        scoreboard.addAction(Actions.parallel(
+                Actions.moveTo(0,
+                        -scoreboard.getHeight(),
+                        Constants.BASE_ANIMATION_DURATION,
+                        Interpolation.linear),
+                Actions.fadeOut(Constants.FADE_ANIM_DURATION)));
+    }
+
+    public void checkIfGameHasEnded() {
         for (int row = 0; row < gameTrackerArray.length; row++) {
             for (int col = 0; col < gameTrackerArray[0].length; col++) {
-                short currentCell = gameTrackerArray[row][col];
+                Constants.CellState currentCell = gameTrackerArray[row][col];
 
-                if (currentCell == Constants.BLANK_CELL_STATE)
+                if (currentCell == Constants.CellState.BLANK || currentCell == null)
                     continue;
 
-                //check column
                 for (int i = 0; i < Constants.GRID_COUNT; i++) {
                     if (gameTrackerArray[row][i] != currentCell)
                         break;
                     if (i == Constants.GRID_COUNT - 1) {
                         gameEnded = true;
-                        declareGameEnded();
+                        declareGameEnded(currentCell);
                         break;
                     }
                 }
-                //check row
+
                 for (int i = 0; i < Constants.GRID_COUNT; i++) {
                     if (gameTrackerArray[i][col] != currentCell)
                         break;
                     if (i == Constants.GRID_COUNT - 1) {
                         gameEnded = true;
-                        declareGameEnded();
+                        declareGameEnded(currentCell);
                         break;
                     }
                 }
-                //check diagonal
+
                 if (row == col) {
                     for (int i = 0; i < Constants.GRID_COUNT; i++) {
                         if (gameTrackerArray[i][i] != currentCell)
                             break;
                         if (i == Constants.GRID_COUNT - 1) {
                             gameEnded = true;
-                            declareGameEnded();
+                            declareGameEnded(currentCell);
                             break;
                         }
                     }
                 }
-                //check anti-diagonal
+
                 for (int i = 0; i < Constants.GRID_COUNT; i++) {
                     if (gameTrackerArray[i][(Constants.GRID_COUNT - 1) - i] != currentCell)
                         break;
                     if (i == Constants.GRID_COUNT - 1) {
                         gameEnded = true;
-                        declareGameEnded();
+                        declareGameEnded(currentCell);
                         break;
                     }
                 }
 
-                if (gameEnded || moveCount >= 9) {
-                    declareGameEnded();
+                if (gameEnded && moveCount >= 9) {
+                    declareGameEnded(currentCell);
+                    break;
+                }
+
+                if (moveCount >= 9) {
+                    declareGameEnded(Constants.CellState.BLANK);
                     break;
                 }
             }
         }
     }
 
-    private void declareGameEnded() {
-        moveCount = 0;
-        gameEnded = false;
-        cleanTrackerArray();
-        table.clear();
-        setUpGameGridCells();
+    private void declareGameEnded(Constants.CellState cellState) {
+        if (cellState == Constants.CellState.CIRCLE) {
+            circleWins++;
+            scoreboard.setCircleWins(circleWins);
+        } else if (cellState == Constants.CellState.CROSS) {
+            crossWins++;
+            scoreboard.setCrossWins(crossWins);
+        }
+
+        playRestartAnimation();
     }
 
-    private void cleanTrackerArray() {
-        for (int i = 0; i < gameTrackerArray.length; i++) {
-            for (int j = 0; j < gameTrackerArray[0].length; j++) {
-                gameTrackerArray[i][j] = Constants.BLANK_CELL_STATE;
+    private void initGameTrackingVars() {
+        gameTrackerArray = new Constants.CellState[Constants.GRID_COUNT][Constants.GRID_COUNT];
+        circleIsOnTurn = true;
+        moveCount = 0;
+        circleWins = 0;
+        crossWins = 0;
+        gameEnded = false;
+        moves = new Stack<>();
+    }
+
+    private void restartGame() {
+        initGameTrackingVars();
+        gameGridTable.clear();
+        createGameGridCells();
+    }
+
+    private void playRestartAnimation() {
+        for (int i = 0; i < gameCells.length; i++) {
+            Image[] gameCell = gameCells[i];
+            for (int j = 0; j < gameCell.length; j++) {
+                if (j == gameCell.length - 1 && i == gameCell.length - 1) {
+                    gameCell[j].addAction(Actions.sequence(
+                            Actions.fadeOut(Constants.RESTART_ANIM_DURATION),
+                            Actions.run(new Runnable() {
+                                @Override
+                                public void run() {
+                                    restartGame();
+                                }
+                            })));
+                } else {
+                    gameCell[j].addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+                }
             }
         }
     }
 
     private void updateGameGridSize() {
-        viewportWidth = viewport.getCamera().viewportWidth;
-        viewportHeight = viewport.getCamera().viewportHeight;
+        float viewportWidth = stage.getCamera().viewportWidth;
+        float viewportHeight = stage.getCamera().viewportHeight;
+        gameGridSize = Constants.getGameGridSize(viewportWidth);
+        gameGridPosition.x = (viewportWidth - gameGridSize) / 2f - Constants.GAME_GRID_PADDING_RIGHT;
+        gameGridPosition.y = (viewportHeight - gameGridSize) / 2f + Constants.GAME_GRID_IMG_PADDING;
 
-        gameGridSize = viewportWidth * 8f / 10f;
-        gameGridPosition.x = (viewportWidth - gameGridSize) / 2f;
-        gameGridPosition.y = (viewportHeight - gameGridSize) / 2f;
+        gameGrid.setSize(gameGridSize, gameGridSize);
 
-        gameGrid.setWidth(gameGridSize);
-        gameGrid.setHeight(gameGridSize);
-        table.setBounds(gameGridPosition.x, gameGridPosition.y,
-                gameGridSize, gameGridSize);
+        if (tableNotAdded) {
+            table.row();
+            table.add(tableContainer).width(gameGridSize).height(gameGridSize)
+                    .colspan(Constants.GAME_3_COLS).expand().center();
+            tableNotAdded = false;
+        } else {
+            table.getCell(tableContainer).width(gameGridSize).height(gameGridSize)
+                    .expand().center();
+        }
 
-        if (isNotAnimated)
-            gameGrid.setPosition(
-                    viewportWidth,
-                    gameGridPosition.y);
-        else
-            gameGrid.setPosition(gameGridPosition.x, gameGridPosition.y);
+        gameGrid.setPosition(gameGridPosition.x, gameGridPosition.y);
     }
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
-        updateGameGridSize();
+        Gdx.app.log(TAG, "resize");
+        if (shouldResize) {
+            stage.getCamera().update();
+            updateGameGridSize();
+        } else
+            shouldResize = true;
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {
         stage.dispose();
-        gameGridStage.dispose();
+        transparentTexture.dispose();
+        circleTurn.dispose();
+        crossTurn.dispose();
     }
 }

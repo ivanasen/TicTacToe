@@ -4,8 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -28,6 +29,7 @@ public class MainMenu implements Screen {
 
     private Stage stage;
     private Image gameLogo;
+    private Sprite backgroundSprite;
     private Image playButton;
 
     private boolean isAnimating;
@@ -39,43 +41,19 @@ public class MainMenu implements Screen {
 
     @Override
     public void show() {
+        Gdx.app.log(TAG, "mainMenu created");
         stage = new Stage();
         viewport = new ScreenViewport();
 
-        gameLogo = new Image(new Texture(Constants.LOGO_IMG));
-        playButton = new Image(new Texture(Constants.PLAY_BTN_IMG));
+        loadImages();
 
         isAnimating = false;
 
         playButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                float width = viewport.getCamera().viewportWidth;
                 super.clicked(event, x, y);
-                isAnimating = true;
-
-                playButton.addAction(
-                        Actions.moveBy(
-                                -(gameLogo.getWidth() + width / 2),
-                                0,
-                                Constants.BASE_ANIMATION_DURATION,
-                                Interpolation.swingIn));
-                gameLogo.addAction(
-                        Actions.sequence(
-                                Actions.moveBy(
-                                        -(gameLogo.getWidth() + width / 2),
-                                        0,
-                                        Constants.BASE_ANIMATION_DURATION,
-                                        Interpolation.swingIn),
-                                Actions.run(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        game.setScreen(new PlayScreen(game));
-                                        MainMenu.this.dispose();
-                                    }
-                                })
-                        )
-                );
+                playExitAnimationAndStartGame();
             }
         });
 
@@ -83,15 +61,77 @@ public class MainMenu implements Screen {
         stage.addActor(gameLogo);
         stage.addActor(playButton);
 
+        playEnterAnimaton();
+
         Gdx.input.setInputProcessor(stage);
+    }
+
+    private void playEnterAnimaton() {
+        gameLogo.getColor().a = 0;
+        playButton.getColor().a = 0;
+
+        gameLogo.addAction(Actions.fadeIn(Constants.FADE_ANIM_DURATION));
+        playButton.addAction(Actions.fadeIn(Constants.FADE_ANIM_DURATION));
+    }
+
+    private void playExitAnimationAndStartGame() {
+        isAnimating = true;
+        float height = viewport.getCamera().viewportHeight;
+        Vector2 objectMovement = new Vector2(0, (gameLogo.getHeight() + height / 2));
+
+        Runnable playScreenRunnable = new Runnable() {
+            @Override
+            public void run() {
+                game.setScreen(new PlayScreen(game));
+                MainMenu.this.dispose();
+            }
+        };
+        gameLogo.addAction(
+                Actions.parallel(
+                        Actions.sequence(
+                                Actions.moveBy(
+                                        objectMovement.x,
+                                        objectMovement.y,
+                                        Constants.BASE_ANIMATION_DURATION),
+                                Actions.run(playScreenRunnable)
+                        ),
+                        Actions.fadeOut(Constants.BASE_ANIMATION_DURATION)
+                )
+        );
+        playButton.addAction(
+                Actions.parallel(
+                        Actions.moveBy(
+                                objectMovement.x,
+                                -objectMovement.y,
+                                Constants.BASE_ANIMATION_DURATION),
+                        Actions.fadeOut(Constants.BASE_ANIMATION_DURATION)
+                ));
+    }
+
+    private void loadImages() {
+        Texture background = new Texture(Constants.BACKGROUND_IMG);
+        backgroundSprite = new Sprite(background);
+
+        Texture logo = new Texture(Constants.LOGO_IMG);
+        logo.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        Texture playBtn = new Texture(Constants.PLAY_BTN_IMG);
+        playBtn.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        gameLogo = new Image(logo);
+        playButton = new Image(playBtn);
     }
 
     @Override
     public void render(float delta) {
         update(delta);
-        Gdx.gl.glClearColor(Constants.BACKGROUND_RED_VALUE, Constants.BACKGROUND_GREEN_VALUE,
-                Constants.BACKGROUND_BLUE_VALUE, Constants.BACKGROUND_ALPHA_VALUE);
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+
+        batch.begin();
+        backgroundSprite.draw(batch);
+        batch.end();
+
         stage.draw();
     }
 
@@ -101,6 +141,8 @@ public class MainMenu implements Screen {
 
         final float width = viewport.getCamera().viewportWidth;
         final float height = viewport.getCamera().viewportHeight;
+
+        backgroundSprite.setSize(width, height);
 
         float aspectRatioLogo = gameLogo.getHeight() / gameLogo.getWidth();
         gameLogo.setWidth(width / 1.2f);
@@ -116,7 +158,7 @@ public class MainMenu implements Screen {
                     height / 4 - playButton.getHeight() / 2);
         }
 
-        stage.act();
+        stage.act(delta);
     }
 
     @Override
@@ -125,16 +167,13 @@ public class MainMenu implements Screen {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {
