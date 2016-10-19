@@ -64,8 +64,6 @@ public class PlayScreen implements Screen {
     private Scoreboard scoreboard;
     private Image restartBtn;
 
-    private int circleWins;
-    private int crossWins;
     private Image playerTurnCell;
     private boolean shouldResize;
     private Texture circleTurn;
@@ -88,6 +86,7 @@ public class PlayScreen implements Screen {
         table.setFillParent(true);
         gameGridTable = new Table();
         tableContainer = new Container<>(gameGridTable);
+        scoreboard = new Scoreboard();
 
         initGridVars();
         initGameTrackingVars();
@@ -132,7 +131,7 @@ public class PlayScreen implements Screen {
             }
         });
 
-        undoBtn.setScale(1.5f);
+        undoBtn.setScale(Constants.BTN_SCALE);
         table.add(undoBtn).padTop(Constants.UNDO_BUTTON_PADDING).padLeft(Constants.UNDO_BUTTON_PADDING).top().right().expandX();
     }
 
@@ -173,7 +172,6 @@ public class PlayScreen implements Screen {
 
     private void createScoreBoard() {
         table.row();
-        scoreboard = new Scoreboard();
         table.add(scoreboard).colspan(Constants.GAME_3_COLS).bottom().expandX();
     }
 
@@ -194,6 +192,7 @@ public class PlayScreen implements Screen {
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 restartBtn.getColor().a = 1;
                 playRestartAnimation();
+                scoreboard.restart();
             }
         });
 
@@ -369,7 +368,7 @@ public class PlayScreen implements Screen {
                     if (i == Constants.GRID_COUNT - 1) {
                         gameEnded = true;
                         declareGameEnded(currentCell);
-                        break;
+                        return;
                     }
                 }
 
@@ -379,7 +378,7 @@ public class PlayScreen implements Screen {
                     if (i == Constants.GRID_COUNT - 1) {
                         gameEnded = true;
                         declareGameEnded(currentCell);
-                        break;
+                        return;
                     }
                 }
 
@@ -390,7 +389,7 @@ public class PlayScreen implements Screen {
                         if (i == Constants.GRID_COUNT - 1) {
                             gameEnded = true;
                             declareGameEnded(currentCell);
-                            break;
+                            return;
                         }
                     }
                 }
@@ -401,18 +400,18 @@ public class PlayScreen implements Screen {
                     if (i == Constants.GRID_COUNT - 1) {
                         gameEnded = true;
                         declareGameEnded(currentCell);
-                        break;
+                        return;
                     }
                 }
 
                 if (gameEnded && moveCount >= 9) {
                     declareGameEnded(currentCell);
-                    break;
+                    return;
                 }
 
                 if (moveCount >= 9) {
                     declareGameEnded(Constants.CellState.BLANK);
-                    break;
+                    return;
                 }
             }
         }
@@ -420,11 +419,9 @@ public class PlayScreen implements Screen {
 
     private void declareGameEnded(Constants.CellState cellState) {
         if (cellState == Constants.CellState.CIRCLE) {
-            circleWins++;
-            scoreboard.setCircleWins(circleWins);
+            scoreboard.setCircleWon();
         } else if (cellState == Constants.CellState.CROSS) {
-            crossWins++;
-            scoreboard.setCrossWins(crossWins);
+            scoreboard.setCrossWon();
         }
 
         playRestartAnimation();
@@ -432,10 +429,8 @@ public class PlayScreen implements Screen {
 
     private void initGameTrackingVars() {
         gameTrackerArray = new Constants.CellState[Constants.GRID_COUNT][Constants.GRID_COUNT];
-        circleIsOnTurn = true;
+        circleIsOnTurn = !circleIsOnTurn;
         moveCount = 0;
-        circleWins = 0;
-        crossWins = 0;
         gameEnded = false;
         moves = new Stack<>();
     }
@@ -443,6 +438,7 @@ public class PlayScreen implements Screen {
     private void restartGame() {
         initGameTrackingVars();
         gameGridTable.clear();
+        createHintForPlayerTurn();
         createGameGridCells();
     }
 
@@ -511,6 +507,7 @@ public class PlayScreen implements Screen {
     public void dispose() {
         stage.dispose();
         transparentTexture.dispose();
+        scoreboard.dispose();
         circleTurn.dispose();
         crossTurn.dispose();
     }
