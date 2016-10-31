@@ -17,9 +17,6 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.TicTacToeMain;
 
-/**
- * Created by ivan-asen on 12.09.16.
- */
 public class MainMenu implements Screen {
     private static final String TAG = MainMenu.class.getSimpleName();
 
@@ -29,6 +26,7 @@ public class MainMenu implements Screen {
 
     private Stage stage;
     private Image gameLogo;
+    private Image settingsBtn;
     private Sprite backgroundSprite;
     private Image playButton;
 
@@ -53,13 +51,37 @@ public class MainMenu implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
-                playExitAnimationAndStartGame();
+
+                Runnable playScreenRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        game.setScreen(new PlayScreen(game));
+                        MainMenu.this.dispose();
+                    }
+                };
+
+                playExitAnimationAndRunAction(playScreenRunnable);
             }
         });
 
+        settingsBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                super.clicked(event, x, y);
+                Runnable settingsRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        game.setScreen(new SettingsScreen(game));
+                        MainMenu.this.dispose();
+                    }
+                };
+                playExitAnimationAndRunAction(settingsRunnable);
+            }
+        });
 
         stage.addActor(gameLogo);
         stage.addActor(playButton);
+        stage.addActor(settingsBtn);
 
         playEnterAnimaton();
 
@@ -70,32 +92,26 @@ public class MainMenu implements Screen {
         gameLogo.getColor().a = 0;
         playButton.getColor().a = 0;
 
-        gameLogo.addAction(Actions.fadeIn(Constants.FADE_ANIM_DURATION));
-        playButton.addAction(Actions.fadeIn(Constants.FADE_ANIM_DURATION));
+        gameLogo.addAction(Actions.fadeIn(Constants.Animations.FADE_ANIM_DURATION));
+        playButton.addAction(Actions.fadeIn(Constants.Animations.FADE_ANIM_DURATION));
+        settingsBtn.addAction(Actions.fadeIn(Constants.Animations.FADE_ANIM_DURATION));
     }
 
-    private void playExitAnimationAndStartGame() {
+    private void playExitAnimationAndRunAction(Runnable runnable) {
         isAnimating = true;
         float height = viewport.getCamera().viewportHeight;
         Vector2 objectMovement = new Vector2(0, (gameLogo.getHeight() + height / 2));
 
-        Runnable playScreenRunnable = new Runnable() {
-            @Override
-            public void run() {
-                game.setScreen(new PlayScreen(game));
-                MainMenu.this.dispose();
-            }
-        };
         gameLogo.addAction(
                 Actions.parallel(
                         Actions.sequence(
                                 Actions.moveBy(
                                         objectMovement.x,
                                         objectMovement.y,
-                                        Constants.BASE_ANIMATION_DURATION),
-                                Actions.run(playScreenRunnable)
+                                        Constants.Animations.BASE_ANIMATION_DURATION),
+                                Actions.run(runnable)
                         ),
-                        Actions.fadeOut(Constants.BASE_ANIMATION_DURATION)
+                        Actions.fadeOut(Constants.Animations.BASE_ANIMATION_DURATION)
                 )
         );
         playButton.addAction(
@@ -103,22 +119,33 @@ public class MainMenu implements Screen {
                         Actions.moveBy(
                                 objectMovement.x,
                                 -objectMovement.y,
-                                Constants.BASE_ANIMATION_DURATION),
-                        Actions.fadeOut(Constants.BASE_ANIMATION_DURATION)
+                                Constants.Animations.BASE_ANIMATION_DURATION),
+                        Actions.fadeOut(Constants.Animations.BASE_ANIMATION_DURATION)
+                ));
+        settingsBtn.addAction(
+                Actions.parallel(
+                        Actions.moveBy(
+                                objectMovement.x,
+                                objectMovement.y,
+                                Constants.Animations.BASE_ANIMATION_DURATION),
+                        Actions.fadeOut(Constants.Animations.BASE_ANIMATION_DURATION)
                 ));
     }
 
     private void loadImages() {
-        Texture background = new Texture(Constants.BACKGROUND_IMG);
+        Texture background = new Texture(Constants.FileDirectories.BACKGROUND_IMG);
         backgroundSprite = new Sprite(background);
 
-        Texture logo = new Texture(Constants.LOGO_IMG);
+        Texture logo = new Texture(Constants.FileDirectories.LOGO_IMG);
         logo.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        Texture playBtn = new Texture(Constants.PLAY_BTN_IMG);
+        Texture playBtn = new Texture(Constants.FileDirectories.PLAY_BTN_IMG);
         playBtn.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        Texture settingsTexture = new Texture(Constants.FileDirectories.SETTINGS_IMG);
+        settingsTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
         gameLogo = new Image(logo);
         playButton = new Image(playBtn);
+        settingsBtn = new Image(settingsTexture);
     }
 
     @Override
@@ -151,11 +178,15 @@ public class MainMenu implements Screen {
         playButton.setWidth(width / 2f);
         playButton.setHeight(aspectRatioButton * playButton.getWidth());
 
+        settingsBtn.setSize(width / 9, width / 9);
+
         if (!isAnimating) {
             gameLogo.setPosition((width - gameLogo.getWidth()) / 2,
                     3 * height / 4 - gameLogo.getHeight() / 2);
             playButton.setPosition((width - playButton.getWidth()) / 2,
                     height / 4 - playButton.getHeight() / 2);
+            settingsBtn.setPosition(stage.getWidth() - settingsBtn.getWidth() * 1.3f,
+                    stage.getHeight() - settingsBtn.getHeight() * 1.3f);
         }
 
         stage.act(delta);
@@ -167,16 +198,14 @@ public class MainMenu implements Screen {
     }
 
     @Override
-    public void pause() {}
-
-    @Override
-    public void resume() {}
-
-    @Override
-    public void hide() {}
-
-    @Override
     public void dispose() {
         stage.dispose();
     }
+
+    @Override
+    public void pause() {}
+    @Override
+    public void resume() {}
+    @Override
+    public void hide() {}
 }

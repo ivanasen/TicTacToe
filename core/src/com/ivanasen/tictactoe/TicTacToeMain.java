@@ -9,7 +9,6 @@ public class TicTacToeMain extends Game {
 
     @Override
     public void create() {
-        //TODO: use assetManager to load resources asynchronously
         batch = new SpriteBatch();
         setScreen(new MainMenu(this));
     }

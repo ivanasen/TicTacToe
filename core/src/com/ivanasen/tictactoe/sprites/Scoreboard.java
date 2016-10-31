@@ -9,23 +9,20 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.ivanasen.tictactoe.Constants;
-
-/**
- * Created by ivan-asen on 16.10.16.
- */
+import com.ivanasen.tictactoe.screens.PlayScreen;
 
 public class Scoreboard extends Table {
     private static final String TAG = Scoreboard.class.getSimpleName();
+
+    private final PlayScreen playscreen;
 
     private int crossWins;
     private int circleWins;
@@ -42,13 +39,14 @@ public class Scoreboard extends Table {
     private Label crossWinsLabel;
     private Image resetBtn;
 
-    public Scoreboard() {
+    public Scoreboard(PlayScreen playScreen) {
         super();
+        this.playscreen = playScreen;
         init();
     }
 
     private void init() {
-        Texture scoreboardTexture = new Texture(Constants.SCOREBOARD_IMG);
+        Texture scoreboardTexture = new Texture(Constants.FileDirectories.SCOREBOARD_IMG);
         scoreboardTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
         createFont();
@@ -74,34 +72,32 @@ public class Scoreboard extends Table {
 
         add(crossWinsContainer)
                 .center()
-                .padTop(Constants.SCORE_PADDING_TOP)
-                .width(Constants.SCORE_CONT_WIDTH);
+                .padTop(Constants.PlayscreenConstants.SCORE_PADDING_TOP)
+                .width(Constants.PlayscreenConstants.SCORE_CONT_WIDTH);
         add(resetBtn)
                 .center()
-                .width(Constants.RESET_BTN_WIDTH)
-                .padLeft(Constants.RESET_BTN_PADDING)
-                .padRight(Constants.RESET_BTN_PADDING)
-                .padTop(Constants.RESET_BTN_PADDING_TOP);
+                .width(Constants.PlayscreenConstants.RESET_BTN_WIDTH)
+                .padLeft(Constants.PlayscreenConstants.RESET_BTN_PADDING)
+                .padRight(Constants.PlayscreenConstants.RESET_BTN_PADDING)
+                .padTop(Constants.PlayscreenConstants.RESET_BTN_PADDING_TOP);
         add(circleWinsContainer)
                 .center()
-                .padTop(Constants.SCORE_PADDING_TOP)
-                .width(Constants.SCORE_CONT_WIDTH);
+                .padTop(Constants.PlayscreenConstants.SCORE_PADDING_TOP)
+                .width(Constants.PlayscreenConstants.SCORE_CONT_WIDTH);
     }
 
     private void createFont() {
         FreeTypeFontGenerator fontGenerator =
-                new FreeTypeFontGenerator(Gdx.files.internal(Constants.FONT_FILE));
+                new FreeTypeFontGenerator(Gdx.files.internal(Constants.FileDirectories.FONT_FILE));
         FreeTypeFontGenerator.FreeTypeFontParameter fontParameter =
                 new FreeTypeFontGenerator.FreeTypeFontParameter();
-        fontParameter.size = Constants.SCORE_FONT_SIZE;
+        fontParameter.size = Constants.PlayscreenConstants.SCORE_FONT_SIZE;
         font = fontGenerator.generateFont(fontParameter);
 
         Label.LabelStyle style = new Label.LabelStyle(font, Color.WHITE);
         font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         circleWinsLabel = new Label(Integer.toString(circleWins), style);
-        circleWinsLabel.setFontScale(Constants.SCORE_FONT_SCALE);
         crossWinsLabel = new Label(Integer.toString(crossWins), style);
-        crossWinsLabel.setFontScale(Constants.SCORE_FONT_SCALE);
         fontGenerator.dispose();
     }
 
@@ -120,20 +116,21 @@ public class Scoreboard extends Table {
         circleWins = 0;
         drawCrossWins();
         drawCircleWins();
+        playscreen.restartGame();
     }
 
     private void createResetBtn() {
-        Texture btnTexture = new Texture(Constants.RESET_BTN_IMG);
+        Texture btnTexture = new Texture(Constants.FileDirectories.RESET_BTN_IMG);
         btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         resetBtn =
                 new Image(new SpriteDrawable(new Sprite(btnTexture)));
-        resetBtn.setScaleY(Constants.BTN_SCALE);
+        resetBtn.setScaleY(Constants.PlayscreenConstants.BTN_SCALE);
         resetBtn.setTouchable(Touchable.enabled);
 
         resetBtn.addListener(new ClickListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                resetBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                resetBtn.getColor().a = Constants.PlayscreenConstants.BTN_COLOR_A_WHEN_PRESSED;
                 return super.touchDown(event, x, y, pointer, button);
             }
 

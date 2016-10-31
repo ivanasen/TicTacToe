@@ -20,16 +20,17 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.ivanasen.tictactoe.Board;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.TicTacToeMain;
+import com.ivanasen.tictactoe.ai.AIPlayer;
+import com.ivanasen.tictactoe.ai.AIPlayerMinimax;
 import com.ivanasen.tictactoe.sprites.PlayerSymbol;
 import com.ivanasen.tictactoe.sprites.Scoreboard;
 
+import java.util.Random;
 import java.util.Stack;
 
-/**
- * Created by ivan-asen on 13.09.16.
- */
 public class PlayScreen implements Screen {
     private static final String TAG = PlayScreen.class.getSimpleName();
     private static final String SCOREBOARD_NAME = "scoreboard";
@@ -39,7 +40,7 @@ public class PlayScreen implements Screen {
     private Viewport viewport;
 
     private Stage stage;
-    private Table gameGridTable;
+    private Table gridTable;
     private Table table;
 
     private float gameGridSize;
@@ -50,8 +51,7 @@ public class PlayScreen implements Screen {
     private Image[][] gameCells;
 
     private Vector2 gameGridPosition;
-    private Constants.CellState[][] gameTrackerArray;
-    private boolean circleIsOnTurn;
+    private Board board;
 
     private boolean animated;
     private boolean gameEnded;
@@ -70,6 +70,10 @@ public class PlayScreen implements Screen {
     private Texture crossTurn;
     private Image undoBtn;
     private Stack<Vector2> moves;
+    private boolean aiOnTurn;
+    private boolean aiThinking;
+    private AIPlayer aiPlayer;
+    private Board.CellState playerSeed;
 
     PlayScreen(TicTacToeMain game) {
         this.game = game;
@@ -82,11 +86,15 @@ public class PlayScreen implements Screen {
 
         Gdx.input.setInputProcessor(stage);
 
+        board = new Board();
+        aiPlayer = new AIPlayerMinimax(board);
+
         table = new Table();
         table.setFillParent(true);
-        gameGridTable = new Table();
-        tableContainer = new Container<>(gameGridTable);
-        scoreboard = new Scoreboard();
+        gridTable = new Table();
+        tableContainer = new Container<>(gridTable);
+        scoreboard = new Scoreboard(this);
+        moves = new Stack<>();
 
         initGridVars();
         initGameTrackingVars();
@@ -112,7 +120,7 @@ public class PlayScreen implements Screen {
     }
 
     private void createUndoButton() {
-        Texture btnTexture = new Texture(Constants.UNDO_BTN_IMG);
+        Texture btnTexture = new Texture(Constants.FileDirectories.UNDO_BTN_IMG);
         btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         undoBtn = new Image(btnTexture);
         undoBtn.setTouchable(Touchable.enabled);
@@ -120,7 +128,7 @@ public class PlayScreen implements Screen {
         undoBtn.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                undoBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                undoBtn.getColor().a = Constants.PlayscreenConstants.BTN_COLOR_A_WHEN_PRESSED;
                 return true;
             }
 
@@ -131,15 +139,16 @@ public class PlayScreen implements Screen {
             }
         });
 
-        undoBtn.setScale(Constants.BTN_SCALE);
-        table.add(undoBtn).padTop(Constants.UNDO_BUTTON_PADDING).padLeft(Constants.UNDO_BUTTON_PADDING).top().right().expandX();
+        undoBtn.setScale(Constants.PlayscreenConstants.BTN_SCALE);
+        table.add(undoBtn).padTop(Constants.PlayscreenConstants.UNDO_BUTTON_PADDING)
+                .padLeft(Constants.PlayscreenConstants.UNDO_BUTTON_PADDING).top().right().expandX();
     }
 
     private void undoLastMove() {
         if (moves.empty())
             return;
 
-        circleIsOnTurn = !circleIsOnTurn;
+        aiOnTurn = !aiOnTurn;
         createHintForPlayerTurn();
         moveCount--;
         Vector2 lastMove = moves.pop();
@@ -147,36 +156,40 @@ public class PlayScreen implements Screen {
     }
 
     private void clearCell(int i, int j) {
-        gameTrackerArray[i][j] = Constants.CellState.BLANK;
+        board.clearCell(i, j);
         gameCells[i][j].setDrawable(new SpriteDrawable(new Sprite(transparentTexture)));
         gameCells[i][j].setTouchable(Touchable.enabled);
     }
 
     private void createHintForPlayerTurn() {
-        table.row();
-
-        if (playerTurnCell == null && circleIsOnTurn) {
-            playerTurnCell = new Image(circleTurn);
-            table.add(playerTurnCell).colspan(Constants.GAME_3_COLS).expandX();
-        } else if (playerTurnCell == null) {
-            playerTurnCell = new Image(crossTurn);
-            table.add(playerTurnCell).colspan(Constants.GAME_3_COLS).expandX();
-        } else if (circleIsOnTurn) {
-            table.getCell(playerTurnCell).getActor()
-                    .setDrawable(new SpriteDrawable(new Sprite(circleTurn)));
-        } else {
-            table.getCell(playerTurnCell).getActor()
-                    .setDrawable(new SpriteDrawable(new Sprite(crossTurn)));
+        if (playerTurnCell == null) {
+            table.row();
+            playerTurnCell = new Image();
+            table.add(playerTurnCell).colspan(Constants.PlayscreenConstants.GAME_COLS).expandX();
         }
+
+        Texture t;
+        if (aiOnTurn) {
+            t = (aiPlayer.getSeed() == Board.CellState.CIRCLE) ? circleTurn : crossTurn;
+        } else {
+            t = (playerSeed == Board.CellState.CIRCLE) ? circleTurn : crossTurn;
+        }
+
+        Gdx.app.log(TAG, playerSeed + " " + aiPlayer.getSeed());
+
+        t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        table.getCell(playerTurnCell).getActor()
+                .setDrawable(new SpriteDrawable(new Sprite(t)));
+
     }
 
     private void createScoreBoard() {
         table.row();
-        table.add(scoreboard).colspan(Constants.GAME_3_COLS).bottom().expandX();
+        table.add(scoreboard).colspan(Constants.PlayscreenConstants.GAME_COLS).bottom().expandX();
     }
 
     private void createRestartButton() {
-        Texture btnTexture = new Texture(Constants.RESTART_BTN_IMG);
+        Texture btnTexture = new Texture(Constants.FileDirectories.RESTART_BTN_IMG);
         btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         restartBtn = new Image(btnTexture);
         restartBtn.setTouchable(Touchable.enabled);
@@ -184,7 +197,7 @@ public class PlayScreen implements Screen {
         restartBtn.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                restartBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                restartBtn.getColor().a = Constants.PlayscreenConstants.BTN_COLOR_A_WHEN_PRESSED;
                 return true;
             }
 
@@ -196,27 +209,27 @@ public class PlayScreen implements Screen {
             }
         });
 
-        table.add(restartBtn).pad(Constants.BUTTON_PADDING).top().right().expandX();
+        table.add(restartBtn).pad(Constants.PlayscreenConstants.BUTTON_PADDING).top().right().expandX();
         table.row();
     }
 
     private void loadImages() {
-        backgroundSprite = new Sprite(new Texture(Constants.BACKGROUND_IMG));
+        backgroundSprite = new Sprite(new Texture(Constants.FileDirectories.BACKGROUND_IMG));
 
-        Texture grid = new Texture(Constants.GAME_GRID_IMG);
+        Texture grid = new Texture(Constants.FileDirectories.GAME_GRID_IMG);
         grid.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         gameGrid = new Image(grid);
-        gameCells = new Image[Constants.GRID_COUNT][Constants.GRID_COUNT];
-        transparentTexture = new Texture(Constants.TRANSPARENT_IMG);
+        gameCells = new Image[Constants.PlayscreenConstants.GRID_COUNT][Constants.PlayscreenConstants.GRID_COUNT];
+        transparentTexture = new Texture(Constants.FileDirectories.TRANSPARENT_IMG);
 
-        circleTurn = new Texture(Constants.CIRCLE_TURN_IMG);
-        crossTurn = new Texture(Constants.CROSS_TURN_IMG);
+        circleTurn = new Texture(Constants.FileDirectories.CIRCLE_TURN_IMG);
+        crossTurn = new Texture(Constants.FileDirectories.CROSS_TURN_IMG);
         circleTurn.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         crossTurn.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
     }
 
     private void createMainMenuButton() {
-        Texture btnTexture = new Texture(Constants.MAIN_MENU_BTN_IMG);
+        Texture btnTexture = new Texture(Constants.FileDirectories.MAIN_MENU_BTN_IMG);
         btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         mainMenuBtn = new Image(btnTexture);
         mainMenuBtn.setTouchable(Touchable.enabled);
@@ -224,7 +237,7 @@ public class PlayScreen implements Screen {
         mainMenuBtn.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                mainMenuBtn.getColor().a = Constants.BTN_COLOR_A_WHEN_PRESSED;
+                mainMenuBtn.getColor().a = Constants.PlayscreenConstants.BTN_COLOR_A_WHEN_PRESSED;
                 return true;
             }
 
@@ -235,16 +248,16 @@ public class PlayScreen implements Screen {
             }
         });
 
-        table.add(mainMenuBtn).padLeft(Constants.BUTTON_PADDING).top().left().expandX();
+        table.add(mainMenuBtn).padLeft(Constants.PlayscreenConstants.BUTTON_PADDING).top().left().expandX();
     }
 
     private void createGameGridCells() {
+        board.init();
         for (int i = 0; i < gameCells.length; i++) {
-            gameGridTable.row();
+            gridTable.row();
             for (int j = 0; j < gameCells[0].length; j++) {
                 gameCells[i][j] = new Image(transparentTexture);
-                gameGridTable.add(gameCells[i][j]).fill().expand();
-                gameTrackerArray[i][j] = Constants.CellState.BLANK;
+                gridTable.add(gameCells[i][j]).fill().expand();
 
                 final int finalI = i;
                 final int finalJ = j;
@@ -252,30 +265,40 @@ public class PlayScreen implements Screen {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {
                         super.clicked(event, x, y);
-                        moveCount++;
-                        moves.push(new Vector2(finalI, finalJ));
-                        gameTrackerArray[finalI][finalJ] = circleIsOnTurn ?
-                                Constants.CellState.CIRCLE : Constants.CellState.CROSS;
-                        gameCells[finalI][finalJ].setTouchable(Touchable.disabled);
-                        PlayScreen.this.drawCurrentPlayerSymbol(gameCells[finalI][finalJ]);
-                        circleIsOnTurn = !circleIsOnTurn;
-                        createHintForPlayerTurn();
+                        processPlayerTurn(finalI, finalJ);
                     }
                 });
             }
         }
     }
 
+    private void processPlayerTurn(int row, int col) {
+        if (row < 0 || col < 0)
+            return;
+
+        board.putMark(row, col, (aiOnTurn ?
+                aiPlayer.getSeed() : playerSeed));
+        moveCount++;
+        moves.push(new Vector2(row, col));
+        drawCurrentPlayerSymbol(gameCells[row][col]);
+        aiOnTurn = !aiOnTurn;
+        createHintForPlayerTurn();
+
+        gridTable.setTouchable(aiOnTurn ? Touchable.disabled : Touchable.enabled);
+    }
+
     private void drawCurrentPlayerSymbol(Image image) {
         SpriteDrawable symbol;
-        if (circleIsOnTurn) {
-            Texture circle = new Texture(Constants.CIRCLE_IMG);
-            circle.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-            symbol = new PlayerSymbol(circle);
+        if (aiOnTurn) {
+            Texture t = new Texture((aiPlayer.getSeed() == Board.CellState.CIRCLE) ?
+                    Constants.FileDirectories.CIRCLE_IMG : Constants.FileDirectories.CROSS_IMG);
+            t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            symbol = new PlayerSymbol(t);
         } else {
-            Texture cross = new Texture(Constants.CROSS_IMG);
-            cross.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-            symbol = new PlayerSymbol(cross);
+            Texture t = new Texture((playerSeed == Board.CellState.CIRCLE) ?
+                    Constants.FileDirectories.CIRCLE_IMG : Constants.FileDirectories.CROSS_IMG);
+            t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            symbol = new PlayerSymbol(t);
         }
         image.getColor().a = 0;
 
@@ -305,6 +328,32 @@ public class PlayScreen implements Screen {
 
         backgroundSprite.setSize(viewport.getScreenWidth(), viewport.getScreenHeight());
         stage.act(delta);
+        if (!gameEnded && !aiThinking) {
+            if (aiOnTurn) {
+                playAiTurn();
+            } else {
+                gridTable.setTouchable(Touchable.enabled);
+            }
+        }
+
+    }
+
+    private void playAiTurn() {
+        aiPlayer.updateBoard(board);
+        int[] move = aiPlayer.move();
+        aiThinking = true;
+        gridTable.addAction(Actions.sequence(
+                Actions.delay(Constants.PlayscreenConstants.AI_THINK_TIME),
+                Actions.run(new Runnable() {
+                    @Override
+                    public void run() {
+                        aiThinking = false;
+                        if (aiOnTurn)
+                            processPlayerTurn(move[0], move[1]);
+                    }
+                })
+        ));
+
     }
 
     private void playEnterAnimation() {
@@ -315,14 +364,14 @@ public class PlayScreen implements Screen {
         playerTurnCell.getColor().a = 0;
         undoBtn.getColor().a = 0;
 
-        gameGrid.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
-        restartBtn.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
-        mainMenuBtn.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
-        playerTurnCell.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
-        undoBtn.addAction(Actions.fadeIn(Constants.BASE_ANIMATION_DURATION));
+        gameGrid.addAction(Actions.fadeIn(Constants.Animations.BASE_ANIMATION_DURATION));
+        restartBtn.addAction(Actions.fadeIn(Constants.Animations.BASE_ANIMATION_DURATION));
+        mainMenuBtn.addAction(Actions.fadeIn(Constants.Animations.BASE_ANIMATION_DURATION));
+        playerTurnCell.addAction(Actions.fadeIn(Constants.Animations.BASE_ANIMATION_DURATION));
+        undoBtn.addAction(Actions.fadeIn(Constants.Animations.BASE_ANIMATION_DURATION));
         scoreboard.addAction(Actions.parallel(Actions.moveTo(0, 0,
-                Constants.BASE_ANIMATION_DURATION, Interpolation.exp10Out),
-                Actions.fadeIn(Constants.BASE_ANIMATION_DURATION)));
+                Constants.Animations.BASE_ANIMATION_DURATION, Interpolation.exp10Out),
+                Actions.fadeIn(Constants.Animations.BASE_ANIMATION_DURATION)));
     }
 
     private void playExitAnimation() {
@@ -336,46 +385,47 @@ public class PlayScreen implements Screen {
 
         for (Image[] gameCell : gameCells) {
             for (Image image : gameCell) {
-                image.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+                image.addAction(Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION));
             }
         }
         mainMenuBtn.addAction(Actions.sequence(
-                Actions.fadeOut(Constants.FADE_ANIM_DURATION), backToMainMenu));
-        gameGrid.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
-        restartBtn.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
-        playerTurnCell.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
-        undoBtn.addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+                Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION), backToMainMenu));
+        gameGrid.addAction(Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION));
+        restartBtn.addAction(Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION));
+        playerTurnCell.addAction(Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION));
+        undoBtn.addAction(Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION));
 
         scoreboard.addAction(Actions.parallel(
                 Actions.moveTo(0,
                         -scoreboard.getHeight(),
-                        Constants.BASE_ANIMATION_DURATION,
+                        Constants.Animations.BASE_ANIMATION_DURATION,
                         Interpolation.linear),
-                Actions.fadeOut(Constants.FADE_ANIM_DURATION)));
+                Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION)));
     }
 
     public void checkIfGameHasEnded() {
-        for (int row = 0; row < gameTrackerArray.length; row++) {
-            for (int col = 0; col < gameTrackerArray[0].length; col++) {
-                Constants.CellState currentCell = gameTrackerArray[row][col];
+        int boardSize = board.getSize();
+        for (int row = 0; row < boardSize; row++) {
+            for (int col = 0; col < boardSize; col++) {
+                Board.CellState currentCell = board.getCell(row, col);
 
-                if (currentCell == Constants.CellState.BLANK || currentCell == null)
+                if (currentCell == Board.CellState.BLANK || currentCell == null)
                     continue;
 
-                for (int i = 0; i < Constants.GRID_COUNT; i++) {
-                    if (gameTrackerArray[row][i] != currentCell)
+                for (int i = 0; i < boardSize; i++) {
+                    if (board.getCell(row, i) != currentCell)
                         break;
-                    if (i == Constants.GRID_COUNT - 1) {
+                    if (i == boardSize - 1) {
                         gameEnded = true;
                         declareGameEnded(currentCell);
                         return;
                     }
                 }
 
-                for (int i = 0; i < Constants.GRID_COUNT; i++) {
-                    if (gameTrackerArray[i][col] != currentCell)
+                for (int i = 0; i < boardSize; i++) {
+                    if (board.getCell(i, col) != currentCell)
                         break;
-                    if (i == Constants.GRID_COUNT - 1) {
+                    if (i == boardSize - 1) {
                         gameEnded = true;
                         declareGameEnded(currentCell);
                         return;
@@ -383,10 +433,10 @@ public class PlayScreen implements Screen {
                 }
 
                 if (row == col) {
-                    for (int i = 0; i < Constants.GRID_COUNT; i++) {
-                        if (gameTrackerArray[i][i] != currentCell)
+                    for (int i = 0; i < boardSize; i++) {
+                        if (board.getCell(i, i) != currentCell)
                             break;
-                        if (i == Constants.GRID_COUNT - 1) {
+                        if (i == boardSize - 1) {
                             gameEnded = true;
                             declareGameEnded(currentCell);
                             return;
@@ -394,10 +444,10 @@ public class PlayScreen implements Screen {
                     }
                 }
 
-                for (int i = 0; i < Constants.GRID_COUNT; i++) {
-                    if (gameTrackerArray[i][(Constants.GRID_COUNT - 1) - i] != currentCell)
+                for (int i = 0; i < boardSize; i++) {
+                    if (board.getCell(i, board.getSize() - i - 1) != currentCell)
                         break;
-                    if (i == Constants.GRID_COUNT - 1) {
+                    if (i == boardSize - 1) {
                         gameEnded = true;
                         declareGameEnded(currentCell);
                         return;
@@ -410,17 +460,17 @@ public class PlayScreen implements Screen {
                 }
 
                 if (moveCount >= 9) {
-                    declareGameEnded(Constants.CellState.BLANK);
+                    declareGameEnded(Board.CellState.BLANK);
                     return;
                 }
             }
         }
     }
 
-    private void declareGameEnded(Constants.CellState cellState) {
-        if (cellState == Constants.CellState.CIRCLE) {
+    private void declareGameEnded(Board.CellState cellState) {
+        if (cellState == Board.CellState.CIRCLE) {
             scoreboard.setCircleWon();
-        } else if (cellState == Constants.CellState.CROSS) {
+        } else if (cellState == Board.CellState.CROSS) {
             scoreboard.setCrossWon();
         }
 
@@ -428,16 +478,23 @@ public class PlayScreen implements Screen {
     }
 
     private void initGameTrackingVars() {
-        gameTrackerArray = new Constants.CellState[Constants.GRID_COUNT][Constants.GRID_COUNT];
-        circleIsOnTurn = !circleIsOnTurn;
+        if (playerSeed == null) {
+            Random r = new Random();
+            playerSeed = r.nextBoolean() ? Board.CellState.CIRCLE : Board.CellState.CROSS;
+        }
+
+        aiPlayer.setSeed((playerSeed == Board.CellState.CIRCLE) ?
+                Board.CellState.CROSS : Board.CellState.CIRCLE);
+        board.init();
         moveCount = 0;
         gameEnded = false;
-        moves = new Stack<>();
+        aiThinking = false;
+        moves.clear();
     }
 
-    private void restartGame() {
+    public void restartGame() {
         initGameTrackingVars();
-        gameGridTable.clear();
+        gridTable.clear();
         createHintForPlayerTurn();
         createGameGridCells();
     }
@@ -448,7 +505,7 @@ public class PlayScreen implements Screen {
             for (int j = 0; j < gameCell.length; j++) {
                 if (j == gameCell.length - 1 && i == gameCell.length - 1) {
                     gameCell[j].addAction(Actions.sequence(
-                            Actions.fadeOut(Constants.RESTART_ANIM_DURATION),
+                            Actions.fadeOut(Constants.Animations.RESTART_ANIM_DURATION),
                             Actions.run(new Runnable() {
                                 @Override
                                 public void run() {
@@ -456,7 +513,7 @@ public class PlayScreen implements Screen {
                                 }
                             })));
                 } else {
-                    gameCell[j].addAction(Actions.fadeOut(Constants.FADE_ANIM_DURATION));
+                    gameCell[j].addAction(Actions.fadeOut(Constants.Animations.FADE_ANIM_DURATION));
                 }
             }
         }
@@ -465,16 +522,18 @@ public class PlayScreen implements Screen {
     private void updateGameGridSize() {
         float viewportWidth = stage.getCamera().viewportWidth;
         float viewportHeight = stage.getCamera().viewportHeight;
-        gameGridSize = Constants.getGameGridSize(viewportWidth);
-        gameGridPosition.x = (viewportWidth - gameGridSize) / 2f - Constants.GAME_GRID_PADDING_RIGHT;
-        gameGridPosition.y = (viewportHeight - gameGridSize) / 2f + Constants.GAME_GRID_IMG_PADDING;
+        gameGridSize = Constants.PlayscreenConstants.getGameGridSize(viewportWidth);
+        gameGridPosition.x = (viewportWidth - gameGridSize) / 2f
+                - Constants.PlayscreenConstants.GAME_GRID_PADDING_RIGHT;
+        gameGridPosition.y = (viewportHeight - gameGridSize) / 2f
+                + Constants.PlayscreenConstants.GAME_GRID_IMG_PADDING;
 
         gameGrid.setSize(gameGridSize, gameGridSize);
 
         if (tableNotAdded) {
             table.row();
             table.add(tableContainer).width(gameGridSize).height(gameGridSize)
-                    .colspan(Constants.GAME_3_COLS).expand().center();
+                    .colspan(Constants.PlayscreenConstants.GAME_COLS).expand().center();
             tableNotAdded = false;
         } else {
             table.getCell(tableContainer).width(gameGridSize).height(gameGridSize)
@@ -495,13 +554,16 @@ public class PlayScreen implements Screen {
     }
 
     @Override
-    public void pause() {}
+    public void pause() {
+    }
 
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+    }
 
     @Override
     public void dispose() {

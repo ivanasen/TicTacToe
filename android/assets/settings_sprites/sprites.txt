@@ -1,0 +1,47 @@
+sprites.png
+size: 1308, 89
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+button (8)
+  rotate: false
+  xy: 577, 1
+  size: 186, 87
+  orig: 186, 87
+  offset: 0, 0
+  index: -1
+easy_btn
+  rotate: false
+  xy: 953, 1
+  size: 176, 87
+  orig: 176, 87
+  offset: 0, 0
+  index: -1
+easy_btn_pressed
+  rotate: false
+  xy: 1131, 1
+  size: 176, 87
+  orig: 176, 87
+  offset: 0, 0
+  index: -1
+hard_btn
+  rotate: false
+  xy: 765, 1
+  size: 186, 87
+  orig: 186, 87
+  offset: 0, 0
+  index: -1
+medium_btn
+  rotate: false
+  xy: 1, 1
+  size: 286, 87
+  orig: 286, 87
+  offset: 0, 0
+  index: -1
+medium_btn_pressed
+  rotate: false
+  xy: 289, 1
+  size: 286, 87
+  orig: 286, 87
+  offset: 0, 0
+  index: -1

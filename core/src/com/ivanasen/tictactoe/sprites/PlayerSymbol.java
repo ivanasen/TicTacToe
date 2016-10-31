@@ -10,10 +10,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.screens.PlayScreen;
 
-/**
- * Created by ivan-asen on 02.10.16.
- */
-
 public class PlayerSymbol extends SpriteDrawable {
 
     public PlayerSymbol(Texture playerSymbol) {
@@ -32,16 +28,17 @@ public class PlayerSymbol extends SpriteDrawable {
 
         image.scaleBy(-scaleX, -scaleY);
 
-        Action fadeInAction = Actions.fadeIn(Constants.SYMBOL_ANIMATION_DURATION);
+        Action fadeInAction = Actions.fadeIn(Constants.Animations.SYMBOL_ANIMATION_DURATION);
         Action scaleAction = Actions.scaleTo(scaleX, scaleY,
-                Constants.SYMBOL_ANIMATION_DURATION, Interpolation.elasticOut);
-        Action checkPlayerHasWonAction = Actions.run(new Runnable() {
-            @Override
-            public void run() {
-                screen.checkIfGameHasEnded();
-            }
-        });
-        image.addAction(Actions.sequence(Actions.parallel(fadeInAction, scaleAction),
-                checkPlayerHasWonAction));
+                Constants.Animations.SYMBOL_ANIMATION_DURATION, Interpolation.elasticOut);
+        image.addAction(Actions.sequence(
+                Actions.parallel(fadeInAction, scaleAction),
+                Actions.run(new Runnable() {
+                    @Override
+                    public void run() {
+                        screen.checkIfGameHasEnded();
+                    }
+                })
+        ));
     }
 }
