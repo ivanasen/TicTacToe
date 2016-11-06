@@ -1,6 +1,6 @@
 android {
-    buildToolsVersion "24.0.1"
-    compileSdkVersion 24
+    buildToolsVersion "25.0.0"
+    compileSdkVersion 25
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -17,7 +17,7 @@ android {
     defaultConfig {
         applicationId "com.ivanasen.tictactoe"
         minSdkVersion 9
-        targetSdkVersion 24
+        targetSdkVersion 25
 
         jackOptions {
             enabled true
@@ -133,6 +133,6 @@ idea {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.google.firebase:firebase-ads:9.2.1'
-    compile 'com.android.support:support-core-utils:24.2.1'
+    compile 'com.android.support:support-core-utils:25.0.0'
 }
 apply plugin: 'com.google.gms.google-services'

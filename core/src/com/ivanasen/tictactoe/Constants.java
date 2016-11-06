@@ -30,14 +30,38 @@ public class Constants {
         public static final String FONT_FILE = "fonts/Roboto-Light.ttf";
     }
 
+    public static class SettingsEntry {
+        public static final String BACKGROUND = "settings_sprites/background.png";
+        public static final String DIFFICULTY_PACK = "settings_sprites/dificulties.txt";
+        public static final float PLAYER_SYMBOL_PADDING_BOTTOM = 216;
+        public static final float DIFF_PADDING_BOTTOM = 486;
+        public static final float PLAYER_SYMBOL_SIZE = 200;
+        public static final int DIFF_COLSPAN = 2;
+        public static final float PLAYER_SYMBOL_PADDING_TOP = 166;
+        public static final String PREFERENCES_NAME = "game_preferences";
+        public static final String PLAYER_SYMBOL = "player_symbol";
+        public static final float COLOR_A_WHEN_FALSE = 0.45f;
+        public static final float DIFF_SCALE = 0.2f;
+        public static final float DIFF_PADDING_HORIZONTAL_LEFT = 64;
+        public static final float DIFF_PADDING_HORIZONTAL_RIGHT = DIFF_PADDING_HORIZONTAL_LEFT * 1.2f;
+        public static final float DIFF_PADDING_HORIZONTAL = 32;
+        public static final String DIFFICULTY = "difficulty";
+    }
+
+    public enum Difficulty {
+        EASY, MEDIUM, HARD
+    }
+
+
     public static class Animations {
         public static final float BASE_ANIMATION_DURATION = 1;
         public static final float FADE_ANIM_DURATION = BASE_ANIMATION_DURATION / 2.5f;
         public static final float RESTART_ANIM_DURATION = BASE_ANIMATION_DURATION / 5;
         public static final float SYMBOL_ANIMATION_DURATION = 0.6f;
+        public static final float SETTINGS_ANIMATION_DURATION = 0.3f;
     }
 
-    public static class PlayscreenConstants {
+    public static class PlayscreenEntry {
         public static final int GRID_COUNT = 3;
         public static final float BUTTON_PADDING = 16;
         public static final float GAME_GRID_IMG_PADDING = 145;

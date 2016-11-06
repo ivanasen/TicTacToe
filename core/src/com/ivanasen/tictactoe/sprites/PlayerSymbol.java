@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.screens.PlayScreen;
+import com.ivanasen.tictactoe.screens.PlayScreenAI;
 
 public class PlayerSymbol extends SpriteDrawable {
 

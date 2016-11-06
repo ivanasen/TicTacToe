@@ -1,6 +1,7 @@
 package com.ivanasen.tictactoe.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -16,6 +17,10 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.TicTacToeMain;
+import com.ivanasen.tictactoe.ai.AI;
+import com.ivanasen.tictactoe.ai.EasyAI;
+import com.ivanasen.tictactoe.ai.HardAI;
+import com.ivanasen.tictactoe.ai.MediumAI;
 
 public class MainMenu implements Screen {
     private static final String TAG = MainMenu.class.getSimpleName();
@@ -39,7 +44,6 @@ public class MainMenu implements Screen {
 
     @Override
     public void show() {
-        Gdx.app.log(TAG, "mainMenu created");
         stage = new Stage();
         viewport = new ScreenViewport();
 
@@ -55,7 +59,19 @@ public class MainMenu implements Screen {
                 Runnable playScreenRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        game.setScreen(new PlayScreen(game));
+                        Preferences prefs = Gdx.app.getPreferences(Constants.SettingsEntry.PREFERENCES_NAME);
+                        String difficulty = prefs.getString(Constants.SettingsEntry.DIFFICULTY);
+                        AI ai;
+
+                        if ( difficulty.equals(Constants.Difficulty.EASY.toString()) ) {
+                            ai = new EasyAI();
+                        } else if ( difficulty.equals(Constants.Difficulty.HARD.toString()) ) {
+                            ai = new HardAI();
+                        } else {
+                            ai = new MediumAI();
+                        }
+                        game.setScreen(new PlayScreenTwoPlayers(game));
+//                        game.setScreen(new PlayScreenAI(game, ai));
                         MainMenu.this.dispose();
                     }
                 };

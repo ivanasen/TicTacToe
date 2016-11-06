@@ -18,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.ivanasen.tictactoe.Constants;
 import com.ivanasen.tictactoe.screens.PlayScreen;
+import com.ivanasen.tictactoe.screens.PlayScreenAI;
 
 public class Scoreboard extends Table {
     private static final String TAG = Scoreboard.class.getSimpleName();
@@ -72,18 +73,18 @@ public class Scoreboard extends Table {
 
         add(crossWinsContainer)
                 .center()
-                .padTop(Constants.PlayscreenConstants.SCORE_PADDING_TOP)
-                .width(Constants.PlayscreenConstants.SCORE_CONT_WIDTH);
+                .padTop(Constants.PlayscreenEntry.SCORE_PADDING_TOP)
+                .width(Constants.PlayscreenEntry.SCORE_CONT_WIDTH);
         add(resetBtn)
                 .center()
-                .width(Constants.PlayscreenConstants.RESET_BTN_WIDTH)
-                .padLeft(Constants.PlayscreenConstants.RESET_BTN_PADDING)
-                .padRight(Constants.PlayscreenConstants.RESET_BTN_PADDING)
-                .padTop(Constants.PlayscreenConstants.RESET_BTN_PADDING_TOP);
+                .width(Constants.PlayscreenEntry.RESET_BTN_WIDTH)
+                .padLeft(Constants.PlayscreenEntry.RESET_BTN_PADDING)
+                .padRight(Constants.PlayscreenEntry.RESET_BTN_PADDING)
+                .padTop(Constants.PlayscreenEntry.RESET_BTN_PADDING_TOP);
         add(circleWinsContainer)
                 .center()
-                .padTop(Constants.PlayscreenConstants.SCORE_PADDING_TOP)
-                .width(Constants.PlayscreenConstants.SCORE_CONT_WIDTH);
+                .padTop(Constants.PlayscreenEntry.SCORE_PADDING_TOP)
+                .width(Constants.PlayscreenEntry.SCORE_CONT_WIDTH);
     }
 
     private void createFont() {
@@ -91,7 +92,7 @@ public class Scoreboard extends Table {
                 new FreeTypeFontGenerator(Gdx.files.internal(Constants.FileDirectories.FONT_FILE));
         FreeTypeFontGenerator.FreeTypeFontParameter fontParameter =
                 new FreeTypeFontGenerator.FreeTypeFontParameter();
-        fontParameter.size = Constants.PlayscreenConstants.SCORE_FONT_SIZE;
+        fontParameter.size = Constants.PlayscreenEntry.SCORE_FONT_SIZE;
         font = fontGenerator.generateFont(fontParameter);
 
         Label.LabelStyle style = new Label.LabelStyle(font, Color.WHITE);
@@ -124,13 +125,13 @@ public class Scoreboard extends Table {
         btnTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         resetBtn =
                 new Image(new SpriteDrawable(new Sprite(btnTexture)));
-        resetBtn.setScaleY(Constants.PlayscreenConstants.BTN_SCALE);
+        resetBtn.setScaleY(Constants.PlayscreenEntry.BTN_SCALE);
         resetBtn.setTouchable(Touchable.enabled);
 
         resetBtn.addListener(new ClickListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                resetBtn.getColor().a = Constants.PlayscreenConstants.BTN_COLOR_A_WHEN_PRESSED;
+                resetBtn.getColor().a = Constants.PlayscreenEntry.BTN_COLOR_A_WHEN_PRESSED;
                 return super.touchDown(event, x, y, pointer, button);
             }
 
