@@ -10,14 +10,22 @@ public class HardAI extends AI {
             return Board.intToCell(4);
         }
 
-        if (turns >= 3) { //No one can win before 4th move
+        if (turns >= 3) {
             final int X_WIN = 0, O_WIN = 1;
             int[] winner = predictWin(board);
 
-            if (winner[O_WIN] != -1) {
-                return Board.intToCell(winner[O_WIN]);
-            } else if (winner[X_WIN] != -1) {
-                return Board.intToCell(winner[X_WIN]);
+            if (getSeed() == Board.CellState.CIRCLE) {
+                if (winner[O_WIN] != -1) {
+                    return Board.intToCell(winner[O_WIN]);
+                } else if (winner[X_WIN] != -1) {
+                    return Board.intToCell(winner[X_WIN]);
+                }
+            } else if (getSeed() == Board.CellState.CROSS) {
+                if (winner[X_WIN] != -1) {
+                    return Board.intToCell(winner[X_WIN]);
+                } else if (winner[O_WIN] != -1) {
+                    return Board.intToCell(winner[O_WIN]);
+                }
             }
         }
 

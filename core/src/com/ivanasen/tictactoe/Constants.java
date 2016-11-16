@@ -7,7 +7,6 @@ public class Constants {
 
     public static class FileDirectories {
         public static final String LOGO_IMG = "main_menu_sprites/logo.png";
-        public static final String PLAY_BTN_IMG = "main_menu_sprites/play_btn.png";
         public static final String SETTINGS_IMG = "main_menu_sprites/settings_btn.png";
         public static final String NO_ADS_IMG = "main_menu_sprites/no_ads.png";
         public static final String V_AI_IMG = "main_menu_sprites/player_v_ai.png";
@@ -55,6 +54,7 @@ public class Constants {
 
     public static class Animations {
         public static final float BASE_ANIMATION_DURATION = 1;
+        public static final float MAIN_ANIMATION_DURATION = 0.64f;
         public static final float FADE_ANIM_DURATION = BASE_ANIMATION_DURATION / 2.5f;
         public static final float RESTART_ANIM_DURATION = BASE_ANIMATION_DURATION / 5;
         public static final float SYMBOL_ANIMATION_DURATION = 0.6f;

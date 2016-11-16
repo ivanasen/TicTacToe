@@ -1,6 +1,8 @@
 package com.ivanasen.tictactoe;
 
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.view.Gravity;
@@ -14,36 +16,82 @@ import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.gms.ads.MobileAds;
 
-public class AndroidLauncher extends FragmentActivity implements AndroidFragmentApplication.Callbacks {
+public class AndroidLauncher extends FragmentActivity
+        implements AndroidFragmentApplication.Callbacks, ActionResolver, Parcelable {
 
-    private GameFragment mGameFragment;
+    public static final String LAUNCHER_KEY = "launcher_kay";
+
+    public InterstitialAd mInterstitialAd;
     private AdView mAdBannerView;
+    private double mTimeInterstitialStartedLoading;
+
+    public AndroidLauncher() {
+        super();
+    }
+
+    protected AndroidLauncher(Parcel in) {
+        mTimeInterstitialStartedLoading = in.readDouble();
+    }
+
+    public static final Creator<AndroidLauncher> CREATOR = new Creator<AndroidLauncher>() {
+        @Override
+        public AndroidLauncher createFromParcel(Parcel in) {
+            return new AndroidLauncher(in);
+        }
+
+        @Override
+        public AndroidLauncher[] newArray(int size) {
+            return new AndroidLauncher[size];
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        mTimeInterstitialStartedLoading = System.currentTimeMillis() / 1000.0 - 120;
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_layout);
 
-        mGameFragment = new GameFragment();
+        Bundle args = new Bundle();
+        args.putParcelable(LAUNCHER_KEY, this);
+
+        GameFragment mGameFragment = new GameFragment();
+        mGameFragment.setArguments(args);
+
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.game_fragment, mGameFragment);
         transaction.commit();
 
-        MobileAds.initialize(getApplicationContext(), "ca-app-pub-3940256099942544~3347511713");
+        String appId = getString(R.string.app_id);
+        MobileAds.initialize(getApplicationContext(), appId);
 
-        createBannerAd();
+        onCreateBannerAd();
+        onCreateInterstitialAd();
     }
 
-    private void createBannerAd() {
+    private void onCreateInterstitialAd() {
+        mInterstitialAd = new InterstitialAd(this);
+        mInterstitialAd.setAdUnitId(getString(R.string.interstitial_ad_unit_id));
+        requestNewInterstitial();
+
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdClosed() {
+                requestNewInterstitial();
+            }
+        });
+    }
+
+    private void onCreateBannerAd() {
         mAdBannerView = new AdView(this);
-        AdRequest adRequest = new AdRequest.Builder()
-                .addTestDevice("9A34A68053A117A4E1BE1AE21CD64C50").build();
+        AdRequest adRequest = new AdRequest.Builder().build();
+
         mAdBannerView.setAdSize(AdSize.SMART_BANNER);
         mAdBannerView.setAdUnitId(getString(R.string.banner_ad_unit_id));
         mAdBannerView.loadAd(adRequest);
-        mAdBannerView.setForegroundGravity(Gravity.BOTTOM);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -60,13 +108,53 @@ public class AndroidLauncher extends FragmentActivity implements AndroidFragment
         });
     }
 
+    private void requestNewInterstitial() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mInterstitialAd.loadAd(adRequest);
+    }
+
     @Override
-    public void exit() {}
+    public void exit() {
+    }
+
+    @Override
+    public void checkIfShouldShowAd() {
+        if (mInterstitialAd == null)
+            return;
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                double currentTime = System.currentTimeMillis() / 1000.0;
+                int minTime = getResources().getInteger(R.integer.min_elapsed_time_interstitial_ad);
+                boolean isRequiredTimeMet = (currentTime - mTimeInterstitialStartedLoading) > minTime;
+
+                if (mInterstitialAd.isLoaded() && isRequiredTimeMet) {
+                    mInterstitialAd.show();
+                    mTimeInterstitialStartedLoading = currentTime;
+                }
+            }
+        });
+
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeDouble(mTimeInterstitialStartedLoading);
+    }
 
     public static class GameFragment extends AndroidFragmentApplication {
+        private ActionResolver mActionResolver;
+
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-            return initializeForView(new TicTacToeMain());
+            mActionResolver = (AndroidLauncher) getArguments().get(AndroidLauncher.LAUNCHER_KEY);
+            return initializeForView(new TicTacToeMain(mActionResolver));
         }
     }
 

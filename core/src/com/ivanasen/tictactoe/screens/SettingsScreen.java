@@ -1,6 +1,9 @@
 package com.ivanasen.tictactoe.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
@@ -30,7 +33,7 @@ import static com.ivanasen.tictactoe.Constants.Difficulty.EASY;
 import static com.ivanasen.tictactoe.Constants.Difficulty.HARD;
 import static com.ivanasen.tictactoe.Constants.Difficulty.MEDIUM;
 
-class SettingsScreen implements Screen {
+class SettingsScreen implements Screen, InputProcessor {
 
     private final TicTacToeMain game;
     private SpriteBatch batch;
@@ -64,11 +67,14 @@ class SettingsScreen implements Screen {
 
     @Override
     public void show() {
+        TicTacToeMain.isMainMenuVisible = false;
         preferences = Gdx.app.getPreferences(Constants.SettingsEntry.PREFERENCES_NAME);
         viewport = new StretchViewport(Constants.V_WIDTH, Constants.V_HEIGHT);
 
         stage = new Stage(viewport);
-        Gdx.input.setInputProcessor(stage);
+
+        InputMultiplexer multiplexer = new InputMultiplexer(this, stage);
+        Gdx.input.setInputProcessor(multiplexer);
 
         table = new Table();
         table.setFillParent(true);
@@ -353,5 +359,53 @@ class SettingsScreen implements Screen {
 
     @Override
     public void hide() {
+    }
+
+
+
+
+    @Override
+    public boolean keyDown(int keycode) {
+        return true;
+    }
+
+    @Override
+    public boolean keyUp(int keycode) {
+        if (keycode == Input.Keys.BACK) {
+            dispose();
+            game.setScreen(new MainMenu(game));
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean keyTyped(char character) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        return false;
+    }
+
+    @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDragged(int screenX, int screenY, int pointer) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseMoved(int screenX, int screenY) {
+        return false;
+    }
+
+    @Override
+    public boolean scrolled(int amount) {
+        return false;
     }
 }
