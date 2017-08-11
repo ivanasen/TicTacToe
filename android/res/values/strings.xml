@@ -3,9 +3,7 @@
 
     <string name="app_name">TicTacToe</string>
 
-    <string name="app_id_test">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
-    <string name="interstitial_ad_unit_id_test">ca-app-pub-3940256099942544/1033173712</string>
-
-    //TODO: add real ids
+    <string name="app_id">ca-app-pub-3617637799312043~5384099297</string>
+    <string name="banner_ad_unit_id">ca-app-pub-3617637799312043/1206192891</string>
+    <string name="interstitial_ad_unit_id">ca-app-pub-3617637799312043/3110479118</string>
 </resources>

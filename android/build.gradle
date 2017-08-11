@@ -1,3 +1,5 @@
+apply plugin: 'com.android.application'
+
 android {
     buildToolsVersion "25.0.0"
     compileSdkVersion 25
@@ -11,12 +13,12 @@ android {
             assets.srcDirs = ['assets']
             jniLibs.srcDirs = ['libs']
         }
-
         instrumentTest.setRoot('tests')
+
     }
     defaultConfig {
         applicationId "com.ivanasen.tictactoe"
-        minSdkVersion 9
+        minSdkVersion 14
         targetSdkVersion 25
 
         jackOptions {
@@ -132,8 +134,10 @@ idea {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.google.firebase:firebase-core:9.8.0'
-    compile 'com.google.firebase:firebase-ads:9.8.0'
+//    compile 'com.google.firebase:firebase-core:11.0.4'
+//    compile 'com.google.firebase:firebase-ads:11.0.4'
+    compile 'com.google.android.gms:play-services-ads:11.0.0'
+
     compile 'com.android.support:support-core-utils:25.0.0'
 }
 apply plugin: 'com.google.gms.google-services'
